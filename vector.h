@@ -47,7 +47,7 @@ public:
    //
    // Construct
    //
-   vector(const A& a = A()) :
+   vector(const A & a = A()) :
       data(nullptr), numElements(0), numCapacity(0), alloc(a) {}
    vector(size_t numElements,                const A & a = A());
    vector(size_t numElements, const T & t,   const A & a = A());
@@ -67,7 +67,7 @@ public:
    }
 
    vector & operator = (const vector & rhs);
-   vector& operator = (vector&& rhs)
+   vector & operator = (vector && rhs)
    {
       clear();
       shrink_to_fit();
@@ -96,11 +96,11 @@ public:
    //
    // Insert
    //
-   void push_back(const T& t);
-   void push_back(T&& t);
+   void push_back(const T & t);
+   void push_back(T && t);
    void reserve(size_t newCapacity);
    void resize(size_t newElements);
-   void resize(size_t newElements, const T& t);
+   void resize(size_t newElements, const T & t);
 
    //
    // Remove
@@ -157,8 +157,8 @@ public:
    // constructors, destructors, and assignment operator
    iterator() : p(nullptr)              {                           }
    iterator(T* p) : p(p)                {                           }
-   iterator(const iterator& rhs)        { this->p = rhs;            }
-   iterator(size_t index, vector<T>& v) { this->p = v.data + index; }
+   iterator(const iterator& rhs)        { *this = rhs;            }
+   iterator(size_t index, vector<T>& v) { p = v.data + index; }
    iterator& operator = (const iterator& rhs)
    {
       this->p = rhs.p;
@@ -166,8 +166,8 @@ public:
    }
 
    // equals, not equals operator
-   bool operator != (const iterator& rhs) const { return p != rhs.p; }
-   bool operator == (const iterator& rhs) const { return p == rhs.p; }
+   bool operator != (const iterator& rhs) const { return rhs.p != this->p; }
+   bool operator == (const iterator& rhs) const { return rhs.p == this->p; }
 
    // dereference operator
    T& operator * ()
@@ -188,7 +188,7 @@ public:
    // postfix increment
    iterator operator ++ (int postfix)
    {
-      iterator temp = *this;
+      iterator temp(*this);
       p++;
       return temp;
    }
@@ -203,7 +203,7 @@ public:
    // postfix decrement
    iterator operator -- (int postfix)
    {
-      iterator temp = *this;
+      iterator temp(*this);
       p--;
       return temp;
    }
@@ -307,7 +307,7 @@ vector <T, A> :: vector (const vector & rhs) : data(nullptr), numElements(0), nu
       numCapacity = rhs.numElements;
 
    for (size_t i = 0; i < rhs.numElements; i++)
-      alloc.construct(&data[i]);
+      alloc.construct(&data[i], rhs.data[i]);
    numElements = rhs.numElements;
    }
 }
@@ -372,7 +372,7 @@ void vector <T, A> :: resize(size_t newElements)
          alloc.destroy(&data[i]);
    }
    // grow as necessary
-   else if (newElements > numCapacity)
+   else if (newElements > numElements)
    {
       // increase capacity as necessary
       if (newElements > numCapacity)
@@ -382,12 +382,11 @@ void vector <T, A> :: resize(size_t newElements)
       for (size_t i = numElements; i < newElements; i++)
       {
          alloc.construct(&data[i]);
-         new (&data[i]) T;
       }
 
       // if we made it this far, adjust the number of elements
-      numElements = newElements;
    }
+   numElements = newElements;
 }
 
 template <typename T, typename A>
@@ -403,7 +402,7 @@ void vector <T, A> :: resize(size_t newElements, const T & t)
          alloc.destroy(&data[i]);
    }
 
-   // frow as necessary
+   // grow as necessary
    else if (newElements > numElements)
    {
       // increase the capacity as necessary
@@ -440,7 +439,7 @@ void vector <T, A> :: reserve(size_t newCapacity)
 
    // copy over the data from the old array
    for (size_t i = 0; i < numElements; i++)
-      new ((void*)(pNew + 1)) T(std::move(data[i]));
+      new ((void*)(pNew + i)) T(std::move(data[i]));
 
    // delete the old and assign the new
    if (nullptr != data)
@@ -608,7 +607,7 @@ vector <T, A> & vector <T, A> :: operator = (const vector & rhs)
       if (rhs.numElements <= numCapacity)
       {
          // copy into the already filled slots
-         for (size_t i = 0; i < rhs.numElements; i++)
+         for (size_t i = 0; i < numElements; i++)
             data[i] = rhs.data[i];
 
          // copy-construct the rest
